@@ -1,0 +1,59 @@
+#
+# docker-compose up
+#
+
+version: "3.8"
+services:
+  pgadmin:
+    # https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html
+    image: dpage/pgadmin4:8.1
+    user: root
+    environment:
+      - PGADMIN_LISTEN_PORT=8081
+      - PGADMIN_DEFAULT_EMAIL=admin@localhost.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_SERVER_JSON_FILE=/configs/pgadmin-servers.json
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+      - PGADMIN_CONFIG_WTF_CSRF_CHECK_DEFAULT=False
+      - PGADMIN_CONFIG_WTF_CSRF_ENABLED=False
+      - GUNICORN_ACCESS_LOGFILE=/dev/null
+    volumes:
+      - ./configs:/configs:ro
+    ports:
+      - 8081:8081
+
+  postgres:
+    image: postgres:14-alpine
+    command: "-c log_statement=all"
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=quarkus
+      - POSTGRES_PASSWORD=quarkus
+      - POSTGRES_DB=quarkus
+    tmpfs:
+      # Mount the database in memory to avoid persistence on disk.
+      - /var/lib/postgresql/data
+
+  vault:
+    image: hashicorp/vault:1.14
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+
+
+  vault-init:
+    image: hashicorp/vault:1.14
+    depends_on:
+      - vault
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=root
+    command: |
+      ash -xc "
+      vault secrets enable transit
+      sleep 9999999
+      "

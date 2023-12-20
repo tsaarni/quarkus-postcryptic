@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Quarkus",
+      "Group": "Servers",
+      "Username": "quarkus",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "ConnectionParameters": {
+        "passfile": "/configs/pgadmin-passfile"
+      }
+    }
+  }
+}
