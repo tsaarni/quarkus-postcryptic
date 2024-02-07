@@ -57,9 +57,9 @@ public class EncryptionKeyInjector implements AgroalPoolInterceptor {
 
         try {
             LOG.infov("Fetching DEKs from keyring in the database");
-            try (Statement fetchDeksStatement = connection.createStatement();
+            try (Statement s = connection.createStatement();
                     Statement setConfigStatement = connection.createStatement()) {
-                ResultSet rs = fetchDeksStatement
+                ResultSet rs = s
                         .executeQuery("SELECT id, dek FROM postcryptic_keyring WHERE active = true ORDER BY id ASC");
 
                 int count = 0;
@@ -68,18 +68,18 @@ public class EncryptionKeyInjector implements AgroalPoolInterceptor {
                     id = rs.getLong(1);
                     String encryptedDek = rs.getString(2);
                     ClearData dek = transitSecretEngine.decrypt(PG_KEK_NAME, encryptedDek);
-                    fetchDeksStatement
+                    s
                             .addBatch("SELECT set_config('postcryptic.dekid" + id + "', '" + dek.asString()
                                     + "', false)");
                     count++;
                 }
                 if (id != null) {
-                    fetchDeksStatement.addBatch("SELECT set_config('postcryptic.currentkey', '" + id + "', false)");
+                    s.addBatch("SELECT set_config('postcryptic.currentkey', '" + id + "', false)");
                 }
 
                 LOG.infov("Injecting {0} DEKs to session", count);
 
-                fetchDeksStatement.executeBatch();
+                s.executeBatch();
             }
         } catch (Exception e) {
             e.printStackTrace();
